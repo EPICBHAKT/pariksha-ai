@@ -1,0 +1,6 @@
+{
+  "name": "ParikshaAI - Exam Prep & Mock Test AI",
+  "description": "Comprehensive AI-powered competitive exam preparation platform with dynamic mock tests, step-by-step AI explanations, 1-minute typing arena, offline question bank, and gamified leaderboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
