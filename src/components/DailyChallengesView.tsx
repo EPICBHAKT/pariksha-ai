@@ -37,7 +37,10 @@ export const DailyChallengesView: React.FC<DailyChallengesProps> = ({
 }) => {
   const t = getTranslation(language);
   const [missions, setMissions] = useState<DailyMission[]>(() => storage.getMissions());
-  const [checkedInToday, setCheckedInToday] = useState<boolean>(false);
+  const [claimToast, setClaimToast] = useState<string | null>(null);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const checkedInToday = profile.lastDailyClaimDate === todayStr;
 
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const currentDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
@@ -66,25 +69,37 @@ export const DailyChallengesView: React.FC<DailyChallengesProps> = ({
   };
 
   const handleDailyCheckIn = () => {
-    if (checkedInToday) return;
-    soundManager.playFanfare();
-    confetti({ particleCount: 80, spread: 70 });
-    setCheckedInToday(true);
+    if (checkedInToday) {
+      setClaimToast('Aaj ka streak reward pehle hi claim ho chuka hai! Kal agla reward unlock hoga.');
+      setTimeout(() => setClaimToast(null), 3000);
+      return;
+    }
 
-    const newProf = {
-      ...profile,
-      currentStreak: profile.currentStreak + 1,
-      coins: profile.coins + 50,
-      xp: profile.xp + 100
-    };
-    storage.saveProfile(newProf);
-    onUpdateProfile(newProf);
+    const res = storage.claimDailyStreak();
+    if (res.success) {
+      soundManager.playFanfare();
+      confetti({ particleCount: 80, spread: 70 });
+      onUpdateProfile(res.profile);
+      setClaimToast(res.message);
+      setTimeout(() => setClaimToast(null), 4000);
+    } else {
+      setClaimToast(res.message);
+      setTimeout(() => setClaimToast(null), 3000);
+    }
   };
 
   const defaultExam = EXAMS_DATA.find(e => e.id === 'ssc-cgl') || EXAMS_DATA[0];
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-16 animate-fadeIn">
+      {/* Toast feedback */}
+      {claimToast && (
+        <div className="fixed top-20 right-4 z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-amber-500/40 text-xs font-bold flex items-center gap-2 animate-bounce">
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{claimToast}</span>
+        </div>
+      )}
+
       {/* Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-rose-600 to-amber-600 text-white rounded-3xl p-6 sm:p-8 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="space-y-2 text-center sm:text-left">
@@ -112,54 +127,75 @@ export const DailyChallengesView: React.FC<DailyChallengesProps> = ({
       </div>
 
       {/* 7-Day Streak Tracker */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
-              Weekly Attendance & Streak Milestone
-            </h3>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                Weekly Attendance & Streak Milestone
+              </h3>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {checkedInToday 
+                ? '✓ Aaj ka reward claim ho chuka hai (Daily limit: 1 per day). Agla reward kal subah unlock hoga.'
+                : 'Rozana attendance lagayein aur +50 Coins +100 XP claim karein (1 Claim/Day).'}
+            </p>
           </div>
           <button
             id="daily-checkin-btn"
             onClick={handleDailyCheckIn}
             disabled={checkedInToday}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
               checkedInToday
-                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 cursor-default'
-                : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xs'
+                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 cursor-not-allowed opacity-90 border border-emerald-300 dark:border-emerald-800'
+                : 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white shadow-md hover:scale-[1.02]'
             }`}
           >
-            <Gift className="w-3.5 h-3.5" />
-            <span>{checkedInToday ? t.checkedInToday : t.claimDailyCheckin}</span>
+            {checkedInToday ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>{t.checkedInToday} (1/1 Claimed)</span>
+              </>
+            ) : (
+              <>
+                <Gift className="w-4 h-4 text-white animate-bounce" />
+                <span>{t.claimDailyCheckin} (+50 Coins)</span>
+              </>
+            )}
           </button>
         </div>
 
         {/* 7-Days Row */}
-        <div className="grid grid-cols-7 gap-2 sm:gap-4 pt-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-3 pt-2">
           {daysOfWeek.map((day, idx) => {
-            const isPastOrToday = idx <= currentDayIndex;
+            const isPast = idx < currentDayIndex;
             const isToday = idx === currentDayIndex;
+            const isTodayClaimed = isToday && checkedInToday;
 
             return (
               <div
                 key={day}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-between h-24 ${
+                className={`p-1.5 sm:p-3 rounded-xl sm:rounded-2xl border text-center transition-all flex flex-col items-center justify-between h-20 sm:h-24 ${
                   isToday
-                    ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-950 dark:text-orange-200 ring-2 ring-orange-500/20'
-                    : isPastOrToday
+                    ? isTodayClaimed
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-200 ring-2 ring-emerald-500/30'
+                      : 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-950 dark:text-orange-200 ring-2 ring-orange-500/20'
+                    : isPast
                     ? 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20 text-slate-800 dark:text-slate-200'
                     : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-400'
                 }`}
               >
-                <span className="text-[11px] font-bold uppercase">{day}</span>
-                {isPastOrToday ? (
-                  <Flame className="w-5 h-5 text-orange-500 fill-orange-500" />
+                <span className="text-[9px] sm:text-[11px] font-bold uppercase truncate w-full">{day}</span>
+                {isPast || isTodayClaimed ? (
+                  <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 fill-emerald-500" />
+                ) : isToday ? (
+                  <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 fill-orange-500 animate-pulse" />
                 ) : (
-                  <Lock className="w-4 h-4 text-slate-300 dark:text-slate-700" />
+                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-300 dark:text-slate-700" />
                 )}
-                <span className="text-[10px] font-bold">
-                  {isToday ? 'Today' : isPastOrToday ? 'Done' : `+${(idx + 1) * 10} XP`}
+                <span className="text-[8px] sm:text-[10px] font-bold truncate w-full">
+                  {isToday ? (isTodayClaimed ? 'Claimed' : 'Today') : isPast ? 'Done' : `+${(idx + 1) * 10}`}
                 </span>
               </div>
             );
@@ -168,13 +204,13 @@ export const DailyChallengesView: React.FC<DailyChallengesProps> = ({
       </div>
 
       {/* Daily Challenge Card (10-Question Quick Test) */}
-      <div className="bg-gradient-to-r from-indigo-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-md flex flex-col sm:flex-row items-center justify-between gap-6">
+      <div className="bg-gradient-to-r from-indigo-900 to-slate-900 text-white rounded-3xl p-5 sm:p-8 shadow-md flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="space-y-2 text-center sm:text-left">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/30 border border-indigo-400/30 text-indigo-300 text-xs font-bold">
             <Zap className="w-3.5 h-3.5 text-amber-400" />
             <span>Today's Recommended Rapid Test</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold">
+          <h2 className="text-lg sm:text-2xl font-extrabold">
             Daily 10-Question Speed Booster
           </h2>
           <p className="text-xs text-slate-300 max-w-md">
@@ -185,10 +221,10 @@ export const DailyChallengesView: React.FC<DailyChallengesProps> = ({
         <button
           id="start-daily-speed-btn"
           onClick={() => { onStartDailyQuiz(defaultExam); soundManager.playClick(); }}
-          className="px-6 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+          className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 shrink-0"
         >
           <Play className="w-4 h-4 fill-slate-950" />
-          <span>Launch Today's Quiz (10 Qs)</span>
+          <span>Launch Quiz (10 Qs)</span>
         </button>
       </div>
 

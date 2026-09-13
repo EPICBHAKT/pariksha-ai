@@ -32,6 +32,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   currentStreak: 5,
   maxStreak: 12,
   lastActiveDate: new Date().toISOString().split('T')[0],
+  lastDailyClaimDate: '',
   streakFreezes: 2,
   totalTests: 18,
   totalQuestionsAttempted: 320,
@@ -250,6 +251,72 @@ export const storage = {
     try {
       localStorage.setItem(STORAGE_KEYS.DAILY_MISSIONS, JSON.stringify(missions));
     } catch (e) {}
+  },
+
+  isDailyStreakClaimedToday(): boolean {
+    try {
+      const profile = storage.getProfile();
+      const today = new Date().toISOString().split('T')[0];
+      return profile.lastDailyClaimDate === today;
+    } catch {
+      return false;
+    }
+  },
+
+  claimDailyStreak(): { success: boolean; message: string; profile: UserProfile; xpEarned: number; coinsEarned: number } {
+    const profile = storage.getProfile();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Ek din me sirf 1 baar hi claim ho sakta hai
+    if (profile.lastDailyClaimDate === today) {
+      return {
+        success: false,
+        message: 'Aaj ka daily streak reward pehle hi claim ho chuka hai! Kal agla reward claim karein.',
+        profile,
+        xpEarned: 0,
+        coinsEarned: 0
+      };
+    }
+
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    let nextStreak = profile.currentStreak || 0;
+
+    if (profile.lastDailyClaimDate === yesterday || profile.lastActiveDate === yesterday) {
+      nextStreak += 1;
+    } else if (!profile.lastDailyClaimDate) {
+      nextStreak = Math.max(1, nextStreak + 1);
+    } else {
+      // If gap is more than 1 day
+      if (profile.streakFreezes > 0) {
+        profile.streakFreezes -= 1;
+        nextStreak += 1;
+      } else {
+        nextStreak = 1;
+      }
+    }
+
+    const xpEarned = 100;
+    const coinsEarned = 50;
+
+    profile.currentStreak = nextStreak;
+    if (profile.currentStreak > (profile.maxStreak || 0)) {
+      profile.maxStreak = profile.currentStreak;
+    }
+    profile.xp += xpEarned;
+    profile.coins += coinsEarned;
+    profile.level = Math.floor(profile.xp / 400) + 1;
+    profile.lastDailyClaimDate = today;
+    profile.lastActiveDate = today;
+
+    storage.saveProfile(profile);
+
+    return {
+      success: true,
+      message: `🎉 +${coinsEarned} Coins & +${xpEarned} XP Claimed! Day ${nextStreak} Streak Active!`,
+      profile,
+      xpEarned,
+      coinsEarned
+    };
   },
 
   claimMissionReward(missionId: string): { xp: number; coins: number } | null {

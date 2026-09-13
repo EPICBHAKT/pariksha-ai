@@ -347,6 +347,12 @@ Provide a sharp, motivating diagnosis formatted as JSON with keys:
   }
 });
 
+// Direct APK Download Endpoint (Independent of React frontend)
+app.get(['/download-apk', '/ParikshaAI_v1.0_Signed_Release.apk'], (req, res) => {
+  const apkPath = path.join(process.cwd(), 'ParikshaAI_v1.0_Signed_Release.apk');
+  res.download(apkPath, 'ParikshaAI_v1.0_Signed_Release.apk');
+});
+
 // Vite Middleware integration for dev and production
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

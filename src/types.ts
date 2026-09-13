@@ -161,6 +161,7 @@ export interface UserProfile {
   currentStreak: number;
   maxStreak: number;
   lastActiveDate: string;
+  lastDailyClaimDate?: string;
   streakFreezes: number;
   totalTests: number;
   testsTaken?: number;

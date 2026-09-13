@@ -143,12 +143,12 @@ export const LeaderboardView: React.FC<LeaderboardProps> = ({ language = 'en' })
 
       {/* Ranks 4 to 10 Table */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 font-bold text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 font-bold text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
           <span>Rank & Aspirant</span>
-          <div className="flex items-center gap-8 sm:gap-16">
-            <span>{t.accuracyRate}</span>
+          <div className="flex items-center gap-4 sm:gap-12 md:gap-16">
+            <span className="hidden sm:inline">{t.accuracyRate}</span>
             <span>{t.studyStreak}</span>
-            <span>{t.totalScore}</span>
+            <span className="w-14 sm:w-16 text-right">{t.totalScore}</span>
           </div>
         </div>
 
@@ -158,45 +158,45 @@ export const LeaderboardView: React.FC<LeaderboardProps> = ({ language = 'en' })
             return (
               <div
                 key={user.id}
-                className={`p-4 flex items-center justify-between transition-colors ${
+                className={`p-3.5 sm:p-4 flex items-center justify-between transition-colors ${
                   isUser
                     ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-l-4 border-indigo-600'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs ${
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 pr-2">
+                  <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
                     idx < 3 ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                   }`}>
                     #{idx + 1}
                   </span>
-                  <span className="text-xl">{user.avatar}</span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                  <span className="text-xl sm:text-2xl shrink-0">{user.avatar}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                         {user.name}
                       </span>
                       {isUser && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-indigo-600 text-white font-bold">
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-md bg-indigo-600 text-white font-bold shrink-0">
                           YOU
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 truncate">
                       {user.examTarget} • {user.state}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-8 sm:gap-16 text-xs">
+                <div className="flex items-center gap-4 sm:gap-12 md:gap-16 text-xs shrink-0">
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 hidden sm:inline">
                     {user.accuracy}%
                   </span>
                   <span className="flex items-center gap-1 font-bold text-orange-500">
                     <Flame className="w-3.5 h-3.5 fill-orange-500" />
-                    {user.streakDays}d
+                    <span>{user.streakDays}d</span>
                   </span>
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white min-w-[60px] text-right">
+                  <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white w-14 sm:w-16 text-right">
                     {boardType === 'weekly' ? user.weeklyPoints : user.points}
                   </span>
                 </div>
